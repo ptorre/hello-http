@@ -1,0 +1,96 @@
+---
+name: Build main branch
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: null
+  workflow_call:
+    outputs:
+      image:
+        description: 'Name of the image built'
+        value: ${{ jobs.build-hello-http.outputs.image }}
+      tags:
+        description: 'List of the tags that were created, separated by spaces'
+        value: ${{ jobs.build-hello-http.outputs.tags }}
+      image-with-tag:
+        description: 'Name of the image tagged with the first tag present'
+        value: ${{ jobs.build-hello-http.outputs.image-with-tag }}
+      registry-path:
+        description: 'Registry paths to which the was pushed'
+        value: ${{ jobs.build-hello-http.outputs.registry-path }}
+
+permissions: read-all
+
+jobs:
+  build-hello-http:
+    name: Build image using biuldah
+    runs-on: ubuntu-20.04
+    permissions:
+      packages: write
+
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      image: ${{ steps.build_image.outputs.image }}
+      tags: ${{ steps.build_image.outputs.tags }}
+      image-with-tag: ${{ steps.build_image.outputs.image-with-tag }}
+      registry-path: ${{ steps.pushed-registry-github-sha.outputs.registry-path }}
+
+    steps:
+
+      - name: Install qemu dependency
+        id: install_qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Build Image
+        id: build_image
+        uses: redhat-actions/buildah-build@v2.10
+        with:
+          image: ${{ github.event.repository.name }}
+          tags: ${{ github.sha }}
+          archs: arm64, amd64
+          containerfiles: ./Containerfile
+          labels: |
+            org.opencontainers.image.title=Simple http hello server
+            org.opencontainers.image.description=Simple python based http server for kubernetes testing.
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build Outputs
+        run: |
+          echo "Image: ${{ steps.build_image.outputs.image }}"
+          echo "Tags: ${{ steps.build_image.outputs.tags }}"
+          echo "Tagged Image: ${{ steps.build_image.outputs.image-with-tag }}"
+
+      - name: Inspect image index
+        run:
+          buildah manifest inspect
+          ${{ steps.build_image.outputs.image-with-tag }}
+
+      - name: Push image index to ghcr.io with github.sha
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ steps.build_image.outputs.image-with-tag }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.sha }}
+
+      - name: Get registry path for github sha
+        id: pushed-registry-github-sha
+        run:
+          echo
+          "::set-output
+          name=registry-path::ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.sha }}"
+
+      - name: Push image index to ghcr.io with latest
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ steps.build_image.outputs.image-with-tag }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:latest
