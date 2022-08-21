@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: buildah-build
+spec:
+  completions: 1
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      volumes:
+        - name: src-dir
+          persistentVolumeClaim:
+            claimName: shared-data-pvc
+        - name: fuse-device
+          hostPath:
+            path: /dev/fuse
+            type: CharDevice
+      containers:
+      - image: quay.io/buildah/stable
+        name: buildah
+        securityContext:
+          privileged: false
+        volumeMounts:
+          - name: src-dir
+            mountPath: /hello-http
+            subPath: hello-http
+          - name: fuse-device
+            mountPath: /dev/fuse
+        workingDir: /hello-http
+        args:
+          - "./buildah-build.sh"
+      restartPolicy: Never
