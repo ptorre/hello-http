@@ -1,0 +1,73 @@
+---
+name: Hello World demo buildah build
+
+on:
+  workflow_dispatch: null
+
+jobs:
+  build-multiarch-containerfile:
+    name: Build multi-architecture image using Containerfile
+    env:
+      IMAGE_NAME: hello-world
+      IMAGE_TAG: latest
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+
+    steps:
+
+      - name: Install qemu dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Create Containerfile
+        run: |
+          cat > Containerfile<<EOF
+          FROM docker.io/busybox:stable-uclibc
+          RUN echo "hello world"
+          ENTRYPOINT [ "sh", "-c", "echo -e 'Hello World from ' \$(hostname)'!\n'" ]
+          EOF
+
+      - name: Build Image
+        id: build_image_multiarch
+        uses: redhat-actions/buildah-build@v2.10
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG }} ${{ github.sha }}
+          oci: true
+          archs: arm64, amd64
+          containerfiles: |
+            ./Containerfile
+          labels: |
+            "org.opencontainers.image.title"="Hello Multi-Architecture World"
+            "org.opencontainers.image.description"="Demo Container for multiarch builds"
+            "org.opencontainers.image.licenses"="Apache-2.0"
+            "org.opencontainers.image.version"="v0.0.0"
+            "org.opencontainers.image.revision"=${{ github.sha }}
+
+      - name: Echo Outputs
+        run: |
+          echo "Image: ${{ steps.build_image_multiarch.outputs.image }}"
+          echo "Tags: ${{ steps.build_image_multiarch.outputs.tags }}"
+          echo "Tagged Image: ${{ steps.build_image_multiarch.outputs.image-with-tag }}"
+
+      - name: Inspect manifest
+        run:
+          buildah manifest inspect
+          ${{ steps.build_image_multiarch.outputs.image }}:${{ env.IMAGE_TAG }}
+
+      - name: Push To ghcr.io
+        id: push-to-ghcr
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          registry: ghcr.io/${{ github.repository_owner }}
+          image: ${{ steps.build_image_multiarch.outputs.image }}
+          tags: ${{ env.IMAGE_TAG }} ${{ github.sha }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print image url
+        run:
+          echo
+          "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
