@@ -25,7 +25,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-user-static
 
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Build Image
+        id: build_image_multiarch
+        uses: redhat-actions/buildah-build@v2.10
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG }} ${{ github.sha }}
+          oci: true
+          archs: arm64, amd64
+          containerfiles: ./Containerfile
+          labels: |
+            "org.opencontainers.image.title"="Simple http hello server"
+            "org.opencontainers.image.description"="Simple python based http server for kubernetes testing."
+            "org.opencontainers.image.licenses"="Apache-2.0"
+            "org.opencontainers.image.version"="v0.0.0"
+            "org.opencontainers.image.revision"=${{ github.sha }}
+
       - name: Echo Outputs
         run: |
-          echo "Step: Install qemu dependency: ${{ steps.install_qemu.outcome }} "
-          echo "Build ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} on "
+          echo "Image: ${{ steps.build_image_multiarch.outputs.image }}"
+          echo "Tags: ${{ steps.build_image_multiarch.outputs.tags }}"
+          echo "Tagged Image: ${{ steps.build_image_multiarch.outputs.image-with-tag }}"
+
+      - name: Inspect manifest
+        run:
+          buildah manifest inspect
+          ${{ steps.build_image_multiarch.outputs.image }}:${{ env.IMAGE_TAG }}
