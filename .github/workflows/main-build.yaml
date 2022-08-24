@@ -1,0 +1,29 @@
+---
+name: Build main branch
+
+on:
+  workflow_dispatch: null
+
+jobs:
+  build-hello-http:
+    name: Build image using biuldah
+    env:
+      IMAGE_NAME: hello-http
+      IMAGE_TAG: latest
+    runs-on: ubuntu-20.04
+    shell: bash
+    strategy:
+      fail-fast: false
+
+    steps:
+
+      - name: Install qemu dependency
+        id: install_qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Echo Outputs
+        run: |
+          echo "Step: Install qemu dependency: ${{ steps.install_qemu.outcome }} "
+          echo "Build ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} on "
