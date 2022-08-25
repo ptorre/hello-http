@@ -1,0 +1,21 @@
+---
+name: Release and push to ghcr registry
+
+on:
+  workflow_dispatch: null
+
+jobs:
+  tag-image-with-release-version:
+    name: Tag image with version and latest
+    env:
+      IMAGE_NAME: hello-http
+      IMAGE_TAG: latest
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+
+    steps:
+
+      - name: Print image url
+        run:
+          echo "Dummy"
