@@ -6,16 +6,13 @@ on:
 
 jobs:
   tag-image-with-release-version:
-    name: Tag image with version and latest
-    env:
-      IMAGE_NAME: hello-http
-      IMAGE_TAG: latest
+    name: Tag image with release version
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
 
     steps:
-
-      - name: Print image url
+      - name: Inspect manifest for the github sha of this build
         run:
-          echo "Dummy"
+          buildah manifest inspect
+          docker://ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
