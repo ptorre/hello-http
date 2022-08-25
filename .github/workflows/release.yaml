@@ -2,20 +2,54 @@
 name: Release and push to ghcr registry
 
 on:
+  release:
+    types: [published]
   workflow_dispatch: null
 
 jobs:
+  call-build-workflow:
+    name: Call main build
+    uses: ./.github/workflows/main-build.yaml
+
   tag-image-with-release-version:
-    name: Tag image with version and latest
-    env:
-      IMAGE_NAME: hello-http
-      IMAGE_TAG: latest
+    name: Tag image with version
+    needs: call-build-workflow
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
 
     steps:
+      - name: Print called build output
+        run: |
+          echo "Image: ${{ needs.call-build-workflow.outputs.image }}"
+          echo "Tags: ${{ needs.call-build-workflow.outputs.tags }}"
+          echo "Tagged Image: ${{ needs.call-build-workflow.outputs.image-with-tag }}"
+          echo "Registry Path: ${{ needs.call-build-workflow.outputs.registry-path }}"
 
-      - name: Print image url
+      - name: Inspect image index from build
         run:
-          echo "Dummy"
+          buildah manifest inspect
+          ${{ needs.call-build-workflow.outputs.registry-path }}
+
+      - name: Create new image index
+        run:
+          buildah manifest create --all
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+          ${{ needs.call-build-workflow.outputs.registry-path }}
+
+      - name: Inspect new image index
+        run:
+          buildah manifest inspect
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+
+      - name: Push new image index with release tag
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+
+      - name: Push new image index with latest tag
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ needs.call-build-workflow.outputs.image }}:latest
