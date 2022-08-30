@@ -49,6 +49,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
+      - name: Cache Container Images
+        id: cache-containers
+        uses: actions/cache@v3
+        with:
+          path: ~/.local/share/containers
+          key: ${{ runner.os }}-${{ hashFiles('Containerfile') }}
+
       - name: Build Image
         id: build_image
         uses: redhat-actions/buildah-build@v2.10
@@ -57,6 +64,8 @@ jobs:
           tags: ${{ github.sha }}
           archs: arm64, amd64
           containerfiles: ./Containerfile
+          extra-args: |
+            --log-level debug
           labels: |
             org.opencontainers.image.title=Simple http hello server
             org.opencontainers.image.description=Simple python based http server for kubernetes testing.
@@ -88,3 +97,7 @@ jobs:
         run:
           echo
           "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
+
+      - name: List container directory
+        run:
+          sudo ls -lR /home/runner/.local/share/containers
