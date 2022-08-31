@@ -36,14 +36,9 @@ jobs:
           buildah manifest inspect
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
-      - env:
-          EVENT_CONTEXT: ${{ toJSON(github.event) }}
-        run: |
-          echo $EVENT_CONTEXT
-
-#      - name: Push To ghcr.io with release tag
-#        run:
-#          buildah manifest push --all
-#          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
-#          ${{ steps.build_image.outputs.image-with-tag }}
-#          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{  }}
+      - name: Push To ghcr.io with release tag
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ steps.build_image.outputs.image-with-tag }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.release.tag_name }}
