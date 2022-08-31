@@ -2,6 +2,8 @@
 name: Build main branch
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch: null
   workflow_call:
     outputs:
