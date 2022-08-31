@@ -36,6 +36,16 @@ jobs:
           buildah manifest inspect
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
+      - name: Pull Manifest
+        run:
+          buildah pull
+          ${{ needs.call-build-workflow.outputs.registry-path }}
+
+      - name: Inspect manifest after pull
+        run:
+          buildah manifest inspect
+          ${{ needs.call-build-workflow.outputs.registry-path }}
+
       - name: Push To ghcr.io with release tag
         run:
           buildah manifest push --all
