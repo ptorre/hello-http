@@ -33,7 +33,7 @@ jobs:
 
       - name: Create new tagged manifest
         run:
-          buildah manifest create -all
+          buildah manifest create --all
           ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
