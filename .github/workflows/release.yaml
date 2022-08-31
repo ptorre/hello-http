@@ -15,4 +15,4 @@ jobs:
       - name: Inspect manifest for the github sha of this build
         run:
           buildah manifest inspect
-          docker://ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
+          ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}

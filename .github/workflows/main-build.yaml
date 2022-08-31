@@ -36,7 +36,8 @@ jobs:
       image: ${{ steps.build_image.outputs.image }}
       tags: ${{ steps.build_image.outputs.tags }}
       image-with-tag: ${{ steps.build_image.outputs.image-with-tag }}
-      registry-path: ${{ steps.push-to-ghcr.outputs.registry-path }}
+#      registry-path: ${{ steps.push-to-ghcr.outputs.registry-path }}
+      registry-path: TODO
 
     steps:
 
@@ -74,17 +75,16 @@ jobs:
           buildah manifest inspect
           ${{ steps.build_image.outputs.image-with-tag }}
 
-      - name: Push To ghcr.io
-        id: push-to-ghcr
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          registry: ghcr.io/${{ github.repository_owner }}
-          image: ${{ steps.build_image.outputs.image }}
-          tags: latest ${{ steps.build_image.outputs.tags }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Print image url
+      - name: Push To ghcr.io as github.sha
         run:
-          echo
-          "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ steps.build_image.outputs.image-with-tag }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.sha }}
+
+      - name: Push To ghcr.io as latest
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ steps.build_image.outputs.image-with-tag }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:latest

@@ -18,9 +18,8 @@ spec:
           privileged: true
         volumeMounts:
           - name: src-dir
-            mountPath: /hello-http
-            subPath: hello-http
-        workingDir: /hello-http
+            mountPath: /root
+        workingDir: /root
         args:
           - "./buildah-build.sh"
       restartPolicy: Never
