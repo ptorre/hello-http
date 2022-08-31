@@ -40,5 +40,5 @@ jobs:
         run:
           buildah manifest push --all
           --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
-          ${{ steps.build_image.outputs.image-with-tag }}
-          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.release.tag_name }}
+          ${{ needs.call-build-workflow.outputs.registry-path }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.event.release.tag_name }}
