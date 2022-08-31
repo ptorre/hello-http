@@ -26,29 +26,25 @@ jobs:
           echo "Tagged Image: ${{ needs.call-build-workflow.outputs.image-with-tag }}"
           echo "Registry Path: ${{ needs.call-build-workflow.outputs.registry-path }}"
 
-      - name: Inspect manifest for the github sha of this build
-        run:
-          buildah manifest inspect
-          ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
-
-      - name: Inspect manifest
+      - name: Inspect manifest after build
         run:
           buildah manifest inspect
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
-      - name: Pull Manifest
+      - name: Create new tagged manifest
         run:
-          buildah pull
+          buildah manifest create -all
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
-      - name: Inspect manifest after pull
+      - name: Inspect new tagged manifest
         run:
           buildah manifest inspect
-          ${{ needs.call-build-workflow.outputs.registry-path }}
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
 
-      - name: Push To ghcr.io with release tag
+      - name: Push new manifest with release tag
         run:
           buildah manifest push --all
           --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
-          ${{ needs.call-build-workflow.outputs.registry-path }}
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
           docker://ghcr.io/${{ github.repository_owner }}/${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
