@@ -36,8 +36,7 @@ jobs:
       image: ${{ steps.build_image.outputs.image }}
       tags: ${{ steps.build_image.outputs.tags }}
       image-with-tag: ${{ steps.build_image.outputs.image-with-tag }}
-#      registry-path: ${{ steps.push-to-ghcr.outputs.registry-path }}
-      registry-path: TODO
+      registry-path: ${{ steps.pushed-registry-github-sha.outputs.registry-path }}
 
     steps:
 
@@ -81,6 +80,13 @@ jobs:
           --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
           ${{ steps.build_image.outputs.image-with-tag }}
           docker://ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.sha }}
+
+      - name: Get registry path for github sha
+        id: pushed-registry-github-sha
+        run:
+          echo
+          "::set-output
+          name=registry-path::ghcr.io/${{ github.repository_owner }}/${{ steps.build_image.outputs.image }}:${{ github.sha }}"
 
       - name: Push To ghcr.io as latest
         run:

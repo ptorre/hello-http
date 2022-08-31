@@ -5,14 +5,31 @@ on:
   workflow_dispatch: null
 
 jobs:
+  call-build-workflow:
+    name: Call main build
+    uses: ./.github/workflows/main-build.yaml
+
   tag-image-with-release-version:
-    name: Tag image with release version
+    name: Tag image with version
+    needs: call-build-workflow
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
 
     steps:
+      - name: Print main build output
+        run: |
+          echo "Image: ${{ needs.call-build-workflow.outputs.image }}"
+          echo "Tags: ${{ needs.call-build-workflow.outputs.tags }}"
+          echo "Tagged Image: ${{ needs.call-build-workflow.outputs.image-with-tag }}"
+          echo "Registry Path: ${{ needs.call-build-workflow.outputs.registry-path }}"
+
       - name: Inspect manifest for the github sha of this build
         run:
           buildah manifest inspect
           ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
+
+      - name: Inspect manifest
+        run:
+          buildah manifest inspect
+          ${{ needs.call-build-workflow.outputs.registry-path }}
