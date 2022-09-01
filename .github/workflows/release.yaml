@@ -15,36 +15,41 @@ jobs:
     name: Tag image with version
     needs: call-build-workflow
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
 
     steps:
-      - name: Print main build output
+      - name: Print called build output
         run: |
           echo "Image: ${{ needs.call-build-workflow.outputs.image }}"
           echo "Tags: ${{ needs.call-build-workflow.outputs.tags }}"
           echo "Tagged Image: ${{ needs.call-build-workflow.outputs.image-with-tag }}"
           echo "Registry Path: ${{ needs.call-build-workflow.outputs.registry-path }}"
 
-      - name: Inspect manifest after build
+      - name: Inspect image index from build
         run:
           buildah manifest inspect
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
-      - name: Create new tagged manifest
+      - name: Create new image index
         run:
           buildah manifest create --all
           ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
           ${{ needs.call-build-workflow.outputs.registry-path }}
 
-      - name: Inspect new tagged manifest
+      - name: Inspect new image index
         run:
           buildah manifest inspect
           ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
 
-      - name: Push new manifest with release tag
+      - name: Push new image index with release tag
         run:
           buildah manifest push --all
           --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
           ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
           docker://ghcr.io/${{ github.repository_owner }}/${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+
+      - name: Push new image index with latest tag
+        run:
+          buildah manifest push --all
+          --creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          ${{ needs.call-build-workflow.outputs.image }}:${{ github.event.release.tag_name }}
+          docker://ghcr.io/${{ github.repository_owner }}/${{ needs.call-build-workflow.outputs.image }}:latest
