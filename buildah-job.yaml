@@ -1,26 +1,53 @@
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: buildah-build
 spec:
   completions: 1
-  ttlSecondsAfterFinished: 60
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
   template:
     spec:
       volumes:
         - name: src-dir
-          persistentVolumeClaim:
-            claimName: shared-data-pvc
+          emptyDir:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      initContainers:
+        - name: git
+          image: public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-git:latest.2022
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: src-dir
+              mountPath: /build
+          args:
+            - "git"
+            - "clone"
+            - "--depth"
+            - "1"
+            - "--branch"
+            - "main"
+            - "https://github.com/ptorre/hello-http"
+          workingDir: /build
       containers:
-      - image: quay.io/buildah/stable
-        name: buildah
-        securityContext:
-          privileged: true
-        volumeMounts:
-          - name: src-dir
-            mountPath: /hello-http
-            subPath: hello-http
-        workingDir: /hello-http
-        args:
-          - "./buildah-build.sh"
+        - image: quay.io/buildah/stable
+          name: buildah
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: src-dir
+              mountPath: /build
+              subPath: hello-http
+          env:
+            - name: ECR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecr-secret
+                  key: password
+          workingDir: /build
+          args:
+            - "./buildah-build.sh"
       restartPolicy: Never
