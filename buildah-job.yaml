@@ -1,25 +1,37 @@
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: buildah-build
 spec:
   completions: 1
-  ttlSecondsAfterFinished: 60
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300
   template:
     spec:
       volumes:
         - name: src-dir
           persistentVolumeClaim:
             claimName: shared-data-pvc
+        - name: ecr-secret
+          secret:
+            secretName: ecr-secret
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
       containers:
       - image: quay.io/buildah/stable
         name: buildah
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         volumeMounts:
           - name: src-dir
             mountPath: /hello-http
             subPath: hello-http
+          - name: ecr-secret
+            mountPath: /run/ecr-secret
+            readOnly: true
         workingDir: /hello-http
         args:
           - "./buildah-build.sh"
