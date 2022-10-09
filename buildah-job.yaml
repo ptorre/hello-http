@@ -5,17 +5,30 @@ metadata:
   name: buildah-build
 spec:
   completions: 1
-  backoffLimit: 1
+  backoffLimit: 0
   ttlSecondsAfterFinished: 300
   template:
     spec:
       volumes:
         - name: src-dir
-          persistentVolumeClaim:
-            claimName: shared-data-pvc
+          emptyDir:
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
+      initContainers:
+        - name: git
+          image: alpine/git
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: src-dir
+              mountPath: /git
+          args:
+            - "clone"
+            - "--depth"
+            - "1"
+            - "--branch"
+            - "main"
+            - "http://github.com/ptorre/hello-http"
       containers:
         - image: quay.io/buildah/stable
           name: buildah
