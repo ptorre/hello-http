@@ -17,18 +17,20 @@ spec:
         runAsGroup: 1000
       initContainers:
         - name: git
-          image: alpine/git
+          image: public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-git:latest.2022
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: src-dir
-              mountPath: /git
+              mountPath: /build
           args:
+            - "git"
             - "clone"
             - "--depth"
             - "1"
             - "--branch"
             - "main"
-            - "http://github.com/ptorre/hello-http"
+            - "https://github.com/ptorre/hello-http"
+          workingDir: /build
       containers:
         - image: quay.io/buildah/stable
           name: buildah
@@ -37,7 +39,7 @@ spec:
             privileged: true
           volumeMounts:
             - name: src-dir
-              mountPath: /hello-http
+              mountPath: /build
               subPath: hello-http
           env:
             - name: ECR_PASSWORD
@@ -45,7 +47,7 @@ spec:
                 secretKeyRef:
                   name: ecr-secret
                   key: password
-          workingDir: /hello-http
+          workingDir: /build
           args:
             - "./buildah-build.sh"
       restartPolicy: Never
